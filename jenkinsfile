@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "ap-south-1"
+        BUCKET_NAME = "pragati-artifact-mavenfirst-project"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                withAWS(region: "${AWS_REGION}", credentials: "aws-creds") {
+                    s3Upload(
+                        bucket: "${BUCKET_NAME}",
+                        file: "target/java-s3-demo-1.0-SNAPSHOT.jar",
+                        path: "artifacts/java-s3-demo-${BUILD_NUMBER}.jar"
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Artifact uploaded successfully."
+        }
+
+        failure {
+            echo "Build failed."
+        }
+    }
+}
